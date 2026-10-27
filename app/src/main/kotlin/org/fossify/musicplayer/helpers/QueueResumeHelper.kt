@@ -61,6 +61,7 @@ object QueueResumeHelper {
         return bytes.joinToString("") { "%02x".format(it) }.take(32)
     }
 
+    @JvmName("queueKeyForMediaItems")
     fun queueKey(mediaItems: List<MediaItem>): String =
         queueKey(mediaItems.mapNotNull { it.mediaId.toLongOrNull() })
 
