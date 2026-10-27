@@ -1,0 +1,33 @@
+name: Build stock-test APK
+
+# Control build for diagnosing a reported freeze: pure stock Fossify
+# 1.8.5, only the applicationId/version changed so it installs over the
+# fork build with the same key. Runs automatically on push to the
+# stock-test branch only. No fork feature code is in this branch.
+
+on:
+  push:
+    branches: [stock-test]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Accept SDK licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+      - name: Build release APK (unsigned)
+        run: ./gradlew assembleFossRelease --no-daemon --stacktrace
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: musicplayer-stocktest-unsigned
+          path: app/build/outputs/apk/foss/release/*.apk
+          if-no-files-found: error

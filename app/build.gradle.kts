@@ -115,7 +115,9 @@ android {
         )
     }
 
-    namespace = project.property("APP_ID").toString()
+    // Stock-test build: namespace pinned to the original package so the
+    // generated R class resolves with the side-by-side applicationId.
+    namespace = "org.fossify.musicplayer"
 
     lint {
         checkReleaseBuilds = false
