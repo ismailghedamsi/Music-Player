@@ -168,6 +168,23 @@ object QueueResumeHelper {
         return Pair(savedIndex, state.lastPositionMs)
     }
 
+    /** Where a track list's saved stopping point is, for highlighting it in
+     * the list and scrolling straight to it: the saved track's index in
+     * [tracks], its id, and the saved position in milliseconds. Null when
+     * the list has no real mid-track stopping point (nothing saved, stopped
+     * under 5 seconds in, or the saved track finished). Runs on the calling
+     * thread: call from a background thread. */
+    fun resumeMarker(context: Context, tracks: List<Track>): ResumeMarker? {
+        if (tracks.isEmpty()) return null
+        val state = getSavedState(context, tracks.map { it.mediaStoreId }) ?: return null
+        val index = tracks.indexOfFirst { it.mediaStoreId == state.currentTrackId }
+        if (index < 0) return null
+        val durationMs = tracks[index].duration * 1000L
+        if (state.lastPositionMs < MIN_RESUME_POSITION_MS) return null
+        if (durationMs > 0 && state.lastPositionMs >= durationMs - END_MARGIN_MS) return null
+        return ResumeMarker(index, state.currentTrackId, state.lastPositionMs)
+    }
+
     /** Forget every saved queue position (used when the feature is toggled off). */
     fun clearAll(context: Context) {
         executor.execute {
