@@ -29,4 +29,9 @@
         android:showAsAction="never"
         android:title="@string/export_playlist"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/save_as_queue"
+        android:showAsAction="never"
+        android:title="@string/save_as_queue"
+        app:showAsAction="never" />
 </menu>
