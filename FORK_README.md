@@ -43,21 +43,26 @@ and the position in **milliseconds**, plus shuffle/repeat and a label.
   from the next track, or restarts the queue if it was the last track.
 - Settings toggle: "Remember where each queue stopped" (on by default).
   Turning it off deletes all saved positions.
-- **Saved Queues screen** (main menu → "Saved queues"): every queue with a
-  saved position, newest first, each showing its label, the track it
-  stopped on, the saved position, and its track number in the queue. Tap
-  a row to resume that queue at its exact saved position. Long-press a
-  row to forget that queue's position; the toolbar menu forgets all of
-  them. Forgetting never touches the music files. Queues whose files are
-  all gone are hidden.
-- **Highlight + no hunting:** in every track list (Songs tab, and album /
-  playlist / folder / genre lists), the track playback stopped on is
-  shown in the accent colour with "resumes at M:SS" instead of its length,
-  and the list opens scrolled straight to that track. Tap the highlighted
-  track to continue from its saved position; tapping any other track
-  starts that track from the beginning. Queues only appear once they have
-  actually been played and paused — each album or playlist you play and
-  pause becomes its own saved queue.
+- **Named queues, like playlists** (main menu → "Queues", DB v17 tables
+  `named_queues` / `named_queue_items`): a queue is a stored list of its
+  own, with a name and its own stopping point. Create one from any track
+  list (album / playlist / folder / genre menu → "Save as queue") or from
+  the playing queue (queue menu → "Save playing queue"). Queue 1 can hold
+  20 songs and Queue 2 can hold 30: play song 10 in Queue 1, then song 3
+  in Queue 2, then open Queue 1 again and song 10 is highlighted, ready
+  to continue. Each queue's position is kept in step with playback
+  whenever the playing list matches that queue's track list, so switching
+  queues never loses a place. Tap a queue to open its tracks; long-press
+  to delete it; rename or delete it from its own menu. Deleting a queue
+  never touches the music files. Queues whose files are all gone are hidden.
+- **Highlight + no hunting:** in every track list (Songs tab, album /
+  playlist / folder / genre lists, and inside a named queue), the track
+  playback stopped on is shown in the accent colour with "resumes at
+  M:SS" instead of its length, and the list opens scrolled straight to
+  that track. Tap the highlighted track to continue from its saved
+  position; tapping any other track starts that track from the beginning.
+  The automatic per-list positions still work for lists that were played
+  and paused without being saved as a named queue.
 - The stock single-queue resume (`queue_items`) is kept untouched for
   external media-browser / Android Auto resume paths.
 
@@ -68,6 +73,15 @@ and the position in **milliseconds**, plus shuffle/repeat and a label.
   (keying, labelling, throttled save, resume lookup, pruning).
 - `databases/SongsDatabase.kt`: version 15 → 16, `MIGRATION_15_16`
   creates both tables; existing installs migrate without losing data.
+- Named queues: new `models/NamedQueue.kt`, `models/NamedQueueItem.kt`,
+  `models/NamedQueueRow.kt`, `interfaces/NamedQueuesDao.kt`,
+  `helpers/NamedQueuesHelper.kt`, `activities/QueuesActivity.kt`,
+  `activities/QueueDetailActivity.kt`, `adapters/QueuesAdapter.kt`,
+  `dialogs/NewQueueDialog.kt`; `SongsDatabase.kt` version 16 → 17,
+  `MIGRATION_16_17` creates both tables. The Saved Queues screen
+  (`SavedQueuesActivity`, `SavedQueuesAdapter`, `SavedQueue`) was replaced
+  by the Queues screen; the automatic per-list positions in `queue_states`
+  are unchanged and still back the highlights in plain track lists.
 - `helpers/Config.kt`, `helpers/Constants.kt`: `rememberQueuePositions`
   preference (default on).
 - `playback/player/Player.kt`: `updatePlaybackState()` also saves the
