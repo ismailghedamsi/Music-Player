@@ -39,9 +39,9 @@
         android:title="@string/equalizer"
         app:showAsAction="always" />
     <item
-        android:id="@+id/saved_queues"
+        android:id="@+id/queues"
         android:showAsAction="never"
-        android:title="@string/saved_queues"
+        android:title="@string/queues"
         app:showAsAction="never" />
     <item
         android:id="@+id/settings"
