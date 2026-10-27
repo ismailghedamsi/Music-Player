@@ -21,6 +21,7 @@ import org.fossify.musicplayer.helpers.getPermissionToRequest
 import org.fossify.musicplayer.playback.library.MediaItemProvider
 import org.fossify.musicplayer.playback.player.SimpleMusicPlayer
 import org.fossify.musicplayer.playback.player.initializeSessionAndPlayer
+import org.fossify.musicplayer.playback.player.updatePlaybackState
 
 @OptIn(UnstableApi::class)
 class PlaybackService : MediaLibraryService(), MediaSessionService.Listener {
@@ -37,14 +38,10 @@ class PlaybackService : MediaLibraryService(), MediaSessionService.Listener {
     private val queueResumeHandler = Handler(Looper.getMainLooper())
     private val queueResumeSaver = object : Runnable {
         override fun run() {
-            if (::player.isInitialized) {
-                withPlayer {
-                    // Only while actually playing: pausing already saves
-                    // immediately (forced) via the player listener.
-                    if (isReallyPlaying) {
-                        updatePlaybackState()
-                    }
-                }
+            if (::player.isInitialized && player.isReallyPlaying) {
+                // Service-level extension (Player.kt): refreshes widget state
+                // and saves this queue's track + position via the helper.
+                updatePlaybackState()
             }
             queueResumeHandler.postDelayed(this, QueueResumeHelper.SAVE_INTERVAL_MS)
         }
