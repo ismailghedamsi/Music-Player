@@ -29,7 +29,9 @@ import org.fossify.musicplayer.adapters.TracksHeaderAdapter
 import org.fossify.musicplayer.databinding.ActivityTracksBinding
 import org.fossify.musicplayer.dialogs.ChangeSortingDialog
 import org.fossify.musicplayer.dialogs.ExportPlaylistDialog
+import org.fossify.musicplayer.dialogs.NewQueueDialog
 import org.fossify.musicplayer.extensions.audioHelper
+import org.fossify.musicplayer.helpers.NamedQueuesHelper
 import org.fossify.musicplayer.helpers.QueueResumeHelper
 import org.fossify.musicplayer.extensions.config
 import org.fossify.musicplayer.extensions.getFolderTracks
@@ -115,6 +117,7 @@ class TracksActivity : SimpleMusicActivity() {
                 R.id.add_file_to_playlist -> addFileToPlaylist()
                 R.id.add_folder_to_playlist -> addFolderToPlaylist()
                 R.id.export_playlist -> tryExportPlaylist()
+                R.id.save_as_queue -> saveListAsQueue()
                 else -> return@setOnMenuItemClickListener false
             }
             return@setOnMenuItemClickListener true
@@ -293,6 +296,29 @@ class TracksActivity : SimpleMusicActivity() {
     }
 
     private fun getTracksAdapter() = binding.tracksList.adapter as? TracksAdapter
+
+    /** Named queues (fork): keep this whole list as a queue of its own, so it keeps its stopping point no matter what else plays. */
+    private fun saveListAsQueue() {
+        val tracks = if (isSearchOpen && tracksIgnoringSearch.isNotEmpty()) {
+            tracksIgnoringSearch
+        } else {
+            getTracksAdapter()?.items
+        } ?: return
+        if (tracks.isEmpty()) return
+        val defaultName = QueueResumeHelper.deriveLabel(tracks).ifBlank { NamedQueuesHelper.nextDefaultName(this) }
+        NewQueueDialog(this, defaultName) { name ->
+            ensureBackgroundThread {
+                val queueId = NamedQueuesHelper.createQueue(this, name, tracks)
+                runOnUiThread {
+                    if (queueId != -1L) {
+                        toast(R.string.queue_saved)
+                    } else {
+                        toast(org.fossify.commons.R.string.unknown_error_occurred)
+                    }
+                }
+            }
+        }
+    }
 
     private fun showSortingDialog() {
         ChangeSortingDialog(this, ACTIVITY_PLAYLIST_FOLDER, playlist, folder) {
