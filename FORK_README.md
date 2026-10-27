@@ -64,6 +64,29 @@ and the position in **milliseconds**, plus shuffle/repeat and a label.
 - `gradle.properties`: new applicationId / version. `res/values/donottranslate.xml`:
   launcher label.
 
+## Build (GitHub Actions — the route that produced the delivered APK)
+
+This fork was prepared in a sandbox where Gradle cannot run (see below).
+The real APK is built by the manual-only workflow
+`.github/workflows/build-resume-apk.yml` in the fork repo
+(github.com/ismailghedamsi/Music-Player): Actions → "Build resume APK" →
+Run workflow → main. It uses the runner's preinstalled Android SDK
+(the `setup-android` action fails on the obsolete `tools` package) and
+runs `./gradlew assembleFossRelease`, uploading the unsigned APK as an
+artifact. Download it, zipalign-check it, sign it, and verify with
+`apksigner verify`. Build history (2026-10-27): the first successful
+run was 40593257878, after fixes for the pinned namespace (below), a
+merged import line, the service-level `updatePlaybackState()` call, and
+a `queueKey` JVM signature clash.
+
+Two fork-specific build facts, learned the hard way:
+- `namespace` stays `org.fossify.musicplayer` (pinned in
+  `app/build.gradle.kts`). Only `APP_ID` changes the installed
+  applicationId. Changing the namespace breaks every `R` / view-binding
+  reference in the sources.
+- The `gh` token needs the `workflow` scope to push any branch whose
+  tree contains `.github/workflows/*`, even unchanged upstream files.
+
 ## Build (any machine with a working Gradle / Android SDK)
 
 ```bash
@@ -73,9 +96,8 @@ echo "sdk.dir=$ANDROID_HOME" > local.properties
 # sign with your own key, then zipalign; the release build is minified.
 ```
 
-No new libraries were added. No unit tests were run in the sandbox where
-this fork was prepared (see below); the Room migration and the resume
-lookup deserve a first-run check on a real device: play an album, pause
+No new libraries were added. The Room migration and the resume lookup
+deserve a first-run check on a real device: play an album, pause
 mid-track, play another album, reopen the first, and confirm it resumes
 at the saved position.
 
@@ -83,9 +105,8 @@ at the saved position.
 
 This fork was prepared in a sandbox where Gradle cannot run: the sandbox
 intercepts JVM loopback TCP, so the Gradle daemon never starts (the same
-failure recorded for the Fossify Gallery mod). The Kotlin patch above is
-complete source, but no Gradle APK was produced from it here. The
-installable APK delivered with this fork is a separate Java build that
-implements the same per-queue resume behaviour; it is not compiled from
-this Kotlin source. Build the APK from this source on a normal machine
-with the command above.
+failure recorded for the Fossify Gallery mod). The Kotlin patch above was
+first delivered as a separate Java build that implements the same
+per-queue resume behaviour; that Java build is superseded. The APK
+delivered since 2026-10-27 evening is compiled from this Kotlin source
+by GitHub Actions as described above.
