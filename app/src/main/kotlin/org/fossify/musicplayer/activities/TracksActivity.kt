@@ -30,6 +30,7 @@ import org.fossify.musicplayer.databinding.ActivityTracksBinding
 import org.fossify.musicplayer.dialogs.ChangeSortingDialog
 import org.fossify.musicplayer.dialogs.ExportPlaylistDialog
 import org.fossify.musicplayer.extensions.audioHelper
+import org.fossify.musicplayer.helpers.QueueResumeHelper
 import org.fossify.musicplayer.extensions.config
 import org.fossify.musicplayer.extensions.getFolderTracks
 import org.fossify.musicplayer.extensions.getMediaStoreIdFromPath
@@ -222,6 +223,11 @@ class TracksActivity : SimpleMusicActivity() {
                 }
             }
 
+            // Per-queue resume (fork): find this list's saved stopping point
+            // (if any) so the stopped-on track can be highlighted and the
+            // list opened scrolled straight to it.
+            val resumeMarker = QueueResumeHelper.resumeMarker(this, tracks)
+
             runOnUiThread {
                 if (sourceType == TYPE_ALBUM) {
                     val currAdapter = binding.tracksList.adapter
@@ -229,6 +235,7 @@ class TracksActivity : SimpleMusicActivity() {
                         TracksHeaderAdapter(this, listItems, binding.tracksList) {
                             itemClicked(it as Track)
                         }.apply {
+                            setResumeMarker(resumeMarker)
                             binding.tracksList.adapter = this
                         }
 
@@ -236,7 +243,18 @@ class TracksActivity : SimpleMusicActivity() {
                             binding.tracksList.scheduleLayoutAnimation()
                         }
                     } else {
-                        (currAdapter as TracksHeaderAdapter).updateItems(listItems)
+                        val headerAdapter = currAdapter as TracksHeaderAdapter
+                        headerAdapter.updateItems(listItems)
+                        headerAdapter.setResumeMarker(resumeMarker)
+                    }
+
+                    // Scroll straight to the stopped-on track the first time
+                    // this list opens, so there is nothing to hunt for. The
+                    // header row sits above the tracks in album lists.
+                    if (currAdapter == null && resumeMarker != null && !isSearchOpen) {
+                        binding.tracksList.post {
+                            binding.tracksList.scrollToPosition(resumeMarker.index + 1)
+                        }
                     }
                 } else {
                     val currAdapter = binding.tracksList.adapter
@@ -251,6 +269,7 @@ class TracksActivity : SimpleMusicActivity() {
                         ) {
                             itemClicked(it as Track)
                         }.apply {
+                            setResumeMarker(resumeMarker)
                             binding.tracksList.adapter = this
                         }
 
@@ -258,7 +277,15 @@ class TracksActivity : SimpleMusicActivity() {
                             binding.tracksList.scheduleLayoutAnimation()
                         }
                     } else {
-                        (currAdapter as TracksAdapter).updateItems(tracks)
+                        val tracksAdapter = currAdapter as TracksAdapter
+                        tracksAdapter.updateItems(tracks)
+                        tracksAdapter.setResumeMarker(resumeMarker)
+                    }
+
+                    if (currAdapter == null && resumeMarker != null && !isSearchOpen) {
+                        binding.tracksList.post {
+                            binding.tracksList.scrollToPosition(resumeMarker.index)
+                        }
                     }
                 }
             }

@@ -16,6 +16,7 @@ import org.fossify.musicplayer.extensions.audioHelper
 import org.fossify.musicplayer.extensions.config
 import org.fossify.musicplayer.extensions.mediaScanner
 import org.fossify.musicplayer.extensions.viewBinding
+import org.fossify.musicplayer.helpers.QueueResumeHelper
 import org.fossify.musicplayer.helpers.TAB_TRACKS
 import org.fossify.musicplayer.models.Track
 import org.fossify.musicplayer.models.sortSafely
@@ -33,6 +34,10 @@ class TracksFragment(context: Context, attributeSet: AttributeSet) : MyViewPager
             tracks = tracks.filter {
                 !excludedFolders.contains(it.path.getParentPath())
             }.toMutableList() as ArrayList<Track>
+
+            // Per-queue resume (fork): highlight the track this whole
+            // library list stopped on, and open the list scrolled to it.
+            val resumeMarker = QueueResumeHelper.resumeMarker(context, tracks)
 
             activity.runOnUiThread {
                 val scanning = activity.mediaScanner.isScanning()
@@ -61,14 +66,23 @@ class TracksFragment(context: Context, attributeSet: AttributeSet) : MyViewPager
                             }
                         }
                     }.apply {
+                        setResumeMarker(resumeMarker)
                         binding.tracksList.adapter = this
                     }
 
                     if (context.areSystemAnimationsEnabled) {
                         binding.tracksList.scheduleLayoutAnimation()
                     }
+
+                    if (resumeMarker != null) {
+                        binding.tracksList.post {
+                            binding.tracksList.scrollToPosition(resumeMarker.index)
+                        }
+                    }
                 } else {
-                    (adapter as TracksAdapter).updateItems(tracks)
+                    val tracksAdapter = adapter as TracksAdapter
+                    tracksAdapter.updateItems(tracks)
+                    tracksAdapter.setResumeMarker(resumeMarker)
                 }
             }
         }

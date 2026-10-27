@@ -9,6 +9,7 @@ import org.fossify.commons.dialogs.ConfirmationDialog
 import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.getFormattedDuration
+import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.commons.extensions.setupViewBackground
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.views.MyRecyclerView
@@ -20,6 +21,7 @@ import org.fossify.musicplayer.dialogs.EditDialog
 import org.fossify.musicplayer.extensions.audioHelper
 import org.fossify.musicplayer.extensions.config
 import org.fossify.musicplayer.extensions.getAlbumCoverArt
+import org.fossify.musicplayer.helpers.ResumeMarker
 import org.fossify.musicplayer.models.AlbumHeader
 import org.fossify.musicplayer.models.ListItem
 import org.fossify.musicplayer.models.Track
@@ -31,6 +33,15 @@ class TracksHeaderAdapter(activity: SimpleActivity, items: ArrayList<ListItem>, 
     private val ITEM_TRACK = 1
 
     override val cornerRadius = resources.getDimension(org.fossify.commons.R.dimen.rounded_corner_radius_big).toInt()
+
+    /** The track playback stopped on in this album, if it has a saved position. Highlighted in [setupTrack]. */
+    var resumeMarker: ResumeMarker? = null
+        private set
+
+    fun setResumeMarker(marker: ResumeMarker?) {
+        resumeMarker = marker
+        notifyDataSetChanged()
+    }
 
     override fun getActionMenuId() = R.menu.cab_tracks_header
 
@@ -132,6 +143,17 @@ class TracksHeaderAdapter(activity: SimpleActivity, items: ArrayList<ListItem>, 
             }
 
             trackDuration.text = track.duration.getFormattedDuration()
+
+            // Per-queue resume (fork): highlight the track playback stopped
+            // on, with its saved position, so it can be tapped to continue.
+            val marker = resumeMarker
+            if (marker != null && track.mediaStoreId == marker.trackId) {
+                val primaryColor = context.getProperPrimaryColor()
+                trackTitle.setTextColor(primaryColor)
+                val resumePosition = (marker.positionMs / 1000).toInt().getFormattedDuration()
+                trackDuration.text = context.getString(R.string.saved_queue_resume_at, resumePosition)
+                trackDuration.setTextColor(primaryColor)
+            }
             if (track.discNumber != null) {
                 val trackNumber = if (track.trackId != null) track.trackId.toString().padStart(2, '0') else ""
                 trackId.text = context.getString(R.string.track_on_disk, track.discNumber, trackNumber)

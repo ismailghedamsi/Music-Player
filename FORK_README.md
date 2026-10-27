@@ -50,6 +50,14 @@ and the position in **milliseconds**, plus shuffle/repeat and a label.
   row to forget that queue's position; the toolbar menu forgets all of
   them. Forgetting never touches the music files. Queues whose files are
   all gone are hidden.
+- **Highlight + no hunting:** in every track list (Songs tab, and album /
+  playlist / folder / genre lists), the track playback stopped on is
+  shown in the accent colour with "resumes at M:SS" instead of its length,
+  and the list opens scrolled straight to that track. Tap the highlighted
+  track to continue from its saved position; tapping any other track
+  starts that track from the beginning. Queues only appear once they have
+  actually been played and paused — each album or playlist you play and
+  pause becomes its own saved queue.
 - The stock single-queue resume (`queue_items`) is kept untouched for
   external media-browser / Android Auto resume paths.
 

@@ -24,6 +24,7 @@ import org.fossify.musicplayer.extensions.config
 import org.fossify.musicplayer.extensions.getTrackCoverArt
 import org.fossify.musicplayer.helpers.ALL_TRACKS_PLAYLIST_ID
 import org.fossify.musicplayer.helpers.PLAYER_SORT_BY_CUSTOM
+import org.fossify.musicplayer.helpers.ResumeMarker
 import org.fossify.musicplayer.inlines.indexOfFirstOrNull
 import org.fossify.musicplayer.models.Events
 import org.fossify.musicplayer.models.Playlist
@@ -42,6 +43,15 @@ class TracksAdapter(
 
     private var touchHelper: ItemTouchHelper? = null
     private var startReorderDragListener: StartReorderDragListener
+
+    /** The track playback stopped on in this list, if the list has a saved position. Highlighted in [setupView]. */
+    var resumeMarker: ResumeMarker? = null
+        private set
+
+    fun setResumeMarker(marker: ResumeMarker?) {
+        resumeMarker = marker
+        notifyDataSetChanged()
+    }
 
     init {
         touchHelper = ItemTouchHelper(ItemMoveCallback(this))
@@ -203,6 +213,16 @@ class TracksAdapter(
             }
 
             trackDuration.text = track.duration.getFormattedDuration()
+
+            // Per-queue resume (fork): highlight the track playback stopped
+            // on, with its saved position, so it can be tapped to continue.
+            val marker = resumeMarker
+            if (marker != null && track.mediaStoreId == marker.trackId) {
+                trackTitle.setTextColor(properPrimaryColor)
+                val resumePosition = (marker.positionMs / 1000).toInt().getFormattedDuration()
+                trackDuration.text = context.getString(R.string.saved_queue_resume_at, resumePosition)
+                trackDuration.setTextColor(properPrimaryColor)
+            }
             activity.getTrackCoverArt(track) { coverArt ->
                 loadImage(trackImage, coverArt, placeholderBig)
             }
