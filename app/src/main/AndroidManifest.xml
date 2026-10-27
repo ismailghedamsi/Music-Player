@@ -158,6 +158,13 @@
             android:label="@string/track_queue"
             android:parentActivityName=".activities.TrackActivity" />
 
+        <activity
+            android:name=".activities.SavedQueuesActivity"
+            android:configChanges="orientation"
+            android:exported="false"
+            android:label="@string/saved_queues"
+            android:parentActivityName=".activities.MainActivity" />
+
         <service
             android:name=".playback.PlaybackService"
             android:exported="true"

@@ -3,10 +3,12 @@
 Base: FossifyOrg/Music-Player, commit `a4cbf6f` (1.8.5, versionCode 18).
 Fork version: **1.8.5-resume1** (versionCode 19), applicationId
 **`org.fossify.musicplayer.resume`** — installs alongside the stock
-Fossify Music Player; launcher label "Music Player (Resume)". The Kotlin
+Fossify Music Player; the launcher label stays "Music Player" (the
+`app_name` string is unchanged). The Kotlin
 package is unchanged (as in the Fossify Gallery Enhanced precedent); only
 the installed applicationId changed, and the provider authority follows
-`${applicationId}.provider`.
+`${applicationId}.provider`. The Android `namespace` is pinned to
+`org.fossify.musicplayer` so the generated `R` class keeps resolving.
 
 ## The feature
 
@@ -41,6 +43,13 @@ and the position in **milliseconds**, plus shuffle/repeat and a label.
   from the next track, or restarts the queue if it was the last track.
 - Settings toggle: "Remember where each queue stopped" (on by default).
   Turning it off deletes all saved positions.
+- **Saved Queues screen** (main menu → "Saved queues"): every queue with a
+  saved position, newest first, each showing its label, the track it
+  stopped on, the saved position, and its track number in the queue. Tap
+  a row to resume that queue at its exact saved position. Long-press a
+  row to forget that queue's position; the toolbar menu forgets all of
+  them. Forgetting never touches the music files. Queues whose files are
+  all gone are hidden.
 - The stock single-queue resume (`queue_items`) is kept untouched for
   external media-browser / Android Auto resume paths.
 

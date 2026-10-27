@@ -2,6 +2,7 @@ package org.fossify.musicplayer.helpers
 
 import android.content.Context
 import androidx.media3.common.MediaItem
+import org.fossify.musicplayer.extensions.audioHelper
 import org.fossify.musicplayer.extensions.config
 import org.fossify.musicplayer.extensions.queueStatesDAO
 import org.fossify.musicplayer.models.QueueState
@@ -175,6 +176,52 @@ object QueueResumeHelper {
                 context.queueStatesDAO.deleteAllStates()
             } catch (ignored: Exception) {
             }
+        }
+    }
+
+    /** All saved queues, newest first. Runs on the calling thread: call from a background thread. */
+    fun listSavedQueues(context: Context): List<QueueState> {
+        if (!context.config.rememberQueuePositions) return emptyList()
+        return try {
+            context.queueStatesDAO.getAllRecent()
+        } catch (ignored: Exception) {
+            emptyList()
+        }
+    }
+
+    /** A saved queue's tracks in their saved order, skipping files that are gone. Runs on the calling thread. */
+    fun loadTracksForState(context: Context, state: QueueState): ArrayList<Track> {
+        val tracks = ArrayList<Track>()
+        try {
+            val audioHelper = context.audioHelper
+            context.queueStatesDAO.getTrackIds(state.queueKey).forEach { trackId ->
+                audioHelper.getTrack(trackId)?.let { tracks.add(it) }
+            }
+        } catch (ignored: Exception) {
+        }
+        return tracks
+    }
+
+    /**
+     * Forget one saved queue's position, on the calling thread: call from a
+     * background thread. The music itself is not affected.
+     */
+    fun forgetSavedQueue(context: Context, queueKey: String) {
+        try {
+            context.queueStatesDAO.deleteQueue(queueKey)
+        } catch (ignored: Exception) {
+        }
+    }
+
+    /**
+     * Forget every saved queue's position, on the calling thread: call from
+     * a background thread. The music itself is not affected.
+     */
+    fun forgetAllSavedQueues(context: Context) {
+        try {
+            context.queueStatesDAO.deleteAllItems()
+            context.queueStatesDAO.deleteAllStates()
+        } catch (ignored: Exception) {
         }
     }
 }
