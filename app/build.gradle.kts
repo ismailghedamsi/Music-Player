@@ -115,7 +115,10 @@ android {
         )
     }
 
-    namespace = project.property("APP_ID").toString()
+    // Fork: keep the original namespace so the generated R / view-binding
+    // classes stay in org.fossify.musicplayer (all sources import them
+    // there). Only the installed applicationId changes (APP_ID property).
+    namespace = "org.fossify.musicplayer"
 
     lint {
         checkReleaseBuilds = false
