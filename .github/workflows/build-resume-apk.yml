@@ -1,0 +1,29 @@
+name: Build resume APK
+
+# Builds the real Fossify-based fork (Gradle cannot run in the sandbox
+# where this fork was prepared) and uploads the unsigned release APK as
+# an artifact. Download it, sign it locally, then install.
+# Manual trigger only: no build runs on its own.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Build release APK (unsigned)
+        run: ./gradlew assembleFossRelease --no-daemon --stacktrace
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: musicplayer-resume-unsigned
+          path: app/build/outputs/apk/foss/release/*.apk
+          if-no-files-found: error
