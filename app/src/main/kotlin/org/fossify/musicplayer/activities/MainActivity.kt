@@ -168,6 +168,7 @@ class MainActivity : SimpleMusicActivity() {
                 R.id.create_playlist_from_folder -> createPlaylistFromFolder()
                 R.id.import_playlist -> tryImportPlaylist()
                 R.id.equalizer -> launchEqualizer()
+                R.id.saved_queues -> launchSavedQueues()
                 R.id.more_apps_from_us -> launchMoreAppsFromUsIntent()
                 R.id.settings -> launchSettings()
                 R.id.about -> launchAbout()
@@ -527,6 +528,11 @@ class MainActivity : SimpleMusicActivity() {
     private fun launchEqualizer() {
         hideKeyboard()
         startActivity(Intent(applicationContext, EqualizerActivity::class.java))
+    }
+
+    private fun launchSavedQueues() {
+        hideKeyboard()
+        startActivity(Intent(applicationContext, SavedQueuesActivity::class.java))
     }
 
     private fun launchSettings() {

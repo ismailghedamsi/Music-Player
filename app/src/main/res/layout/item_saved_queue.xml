@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/saved_queue_frame"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:orientation="vertical"
+    android:paddingStart="@dimen/normal_margin"
+    android:paddingTop="@dimen/activity_margin"
+    android:paddingEnd="@dimen/medium_margin"
+    android:paddingBottom="@dimen/activity_margin">
+
+    <org.fossify.commons.views.MyTextView
+        android:id="@+id/saved_queue_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textSize="@dimen/bigger_text_size" />
+
+    <org.fossify.commons.views.MyTextView
+        android:id="@+id/saved_queue_subtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:alpha="0.8"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textSize="@dimen/small_text_size" />
+
+</LinearLayout>
