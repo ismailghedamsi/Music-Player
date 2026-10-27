@@ -54,11 +54,13 @@ abstract class SimpleControllerActivity : SimpleActivity(), Player.Listener {
 
     fun withPlayer(callback: MediaController.() -> Unit) = controller.withController(callback)
 
-    fun prepareAndPlay(tracks: List<Track>, startIndex: Int = 0, startPositionMs: Long = 0, startActivity: Boolean = true) {
+    fun prepareAndPlay(tracks: List<Track>, startIndex: Int = 0, startPositionMs: Long = 0, startActivity: Boolean = true, forceFresh: Boolean = false) {
         // Per-queue resume (fork): look the saved position up off the main
         // thread first, then prepare on the player thread as before.
+        // forceFresh skips the lookup: the tap itself decides the track and
+        // it starts from 0 (used by the queue detail screen).
         ensureBackgroundThread {
-            val resume = if (startPositionMs == 0L) {
+            val resume = if (startPositionMs == 0L && !forceFresh) {
                 QueueResumeHelper.lookupResume(this@SimpleControllerActivity, tracks, startIndex)
             } else {
                 null
