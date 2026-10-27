@@ -16,7 +16,8 @@ import org.fossify.musicplayer.extensions.sendCommand
 import org.fossify.musicplayer.helpers.QueueResumeHelper
 import org.fossify.musicplayer.helpers.SHOW_FILENAME_ALWAYS
 import org.fossify.musicplayer.helpers.SHOW_FILENAME_IF_UNAVAILABLE
-import org.fossify.musicplayer.helpers.SHOW_FILENAME_NEVERimport org.fossify.musicplayer.playback.CustomCommands
+import org.fossify.musicplayer.helpers.SHOW_FILENAME_NEVER
+import org.fossify.musicplayer.playback.CustomCommands
 import java.util.Locale
 import kotlin.system.exitProcess
 
