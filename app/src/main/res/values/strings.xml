@@ -83,6 +83,9 @@
     <!-- Settings -->
     <string name="equalizer">Equalizer</string>
     <string name="swap_prev_next">Swap previous/next headphone buttons</string>
+    <string name="remember_queue_positions">Remember where each queue stopped</string>
+    <string name="remember_queue_positions_summary">Each album, playlist and queue picks up at the exact track and position where you paused it, even days later</string>
+    <string name="queue_resumed_where_you_left_off">Resumed where you left off</string>
     <string name="exclude_folder_description">Excluding a folder will prevent the displaying of all audio files within. Files manually added to playlists will not be affected.</string>
     <string name="rescan_media">Rescan media</string>
     <!-- FAQ -->

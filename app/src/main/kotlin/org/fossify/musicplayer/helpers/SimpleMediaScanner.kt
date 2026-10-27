@@ -4,7 +4,6 @@ import android.app.Application
 import android.content.ContentUris
 import android.media.MediaMetadataRetriever
 import android.media.MediaMetadataRetriever.*
-import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
@@ -19,6 +18,8 @@ import org.fossify.musicplayer.extensions.config
 import org.fossify.musicplayer.models.*
 import java.io.File
 import java.io.FileInputStream
+import androidx.core.net.toUri
+import org.fossify.musicplayer.extensions.getFriendlyFolder
 
 /**
  * This singleton class manages the process of querying [MediaStore] for new audio files, manually scanning storage for missing audio files, and removing outdated
@@ -232,16 +233,14 @@ class SimpleMediaScanner(private val context: Application) {
             val id = cursor.getLongValue(Audio.Media._ID)
             val title = cursor.getStringValue(Audio.Media.TITLE)
             val duration = cursor.getIntValue(Audio.Media.DURATION) / 1000
-            var trackId = cursor.getIntValueOrNull(Audio.Media.TRACK)
-            if (trackId != null) {
-                trackId %= 1000
-            }
+            var trackId = cursor.getStringValue(Audio.Media.TRACK)?.firstNumber()
+                ?: cursor.getIntValueOrNull(Audio.Media.TRACK)
             val path = cursor.getStringValue(Audio.Media.DATA).orEmpty()
             val artist = cursor.getStringValue(Audio.Media.ARTIST) ?: MediaStore.UNKNOWN_STRING
             val folderName = if (isQPlus()) {
                 cursor.getStringValue(Audio.Media.BUCKET_DISPLAY_NAME) ?: MediaStore.UNKNOWN_STRING
             } else {
-                ""
+                context.getFriendlyFolder(path).ifEmpty { MediaStore.UNKNOWN_STRING }
             }
 
             val album = cursor.getStringValue(Audio.Media.ALBUM) ?: folderName
@@ -254,15 +253,24 @@ class SimpleMediaScanner(private val context: Application) {
 
             val genre: String
             val genreId: Long
-            val discNumber: Int?
+            var discNumber: Int?
             if (isRPlus()) {
                 genre = cursor.getStringValue(Audio.Media.GENRE).orEmpty()
                 genreId = cursor.getLongValue(Audio.Media.GENRE_ID)
-                discNumber = cursor.getStringValue(Audio.Media.DISC_NUMBER)?.toIntOrNull()
+                discNumber = cursor.getStringValue(Audio.Media.DISC_NUMBER)?.firstNumber()
             } else {
                 genre = ""
                 genreId = 0
                 discNumber = null
+            }
+
+            if (trackId != null && trackId >= 1000) {
+                // derive disc number from track number when possible
+                if (discNumber == null) {
+                    discNumber = trackId / 1000
+                }
+
+                trackId %= 1000
             }
 
             if (!title.isNullOrEmpty()) {
@@ -368,7 +376,7 @@ class SimpleMediaScanner(private val context: Application) {
         }
 
         val genreToTracks = hashMapOf<Long, MutableList<Long>>()
-        val uri = Uri.parse(GENRE_CONTENT_URI)
+        val uri = GENRE_CONTENT_URI.toUri()
         val projection = arrayListOf(
             Audio.Genres.Members.GENRE_ID,
             Audio.Genres.Members.AUDIO_ID
@@ -448,8 +456,8 @@ class SimpleMediaScanner(private val context: Application) {
             val folderName = path.getParentPath().getFilenameFromPath()
             val album = retriever.extractMetadata(METADATA_KEY_ALBUM) ?: folderName
             val trackNumber = retriever.extractMetadata(METADATA_KEY_CD_TRACK_NUMBER)
-            val trackId = trackNumber?.split("/")?.first()?.toIntOrNull()
-            val discNumber = retriever.extractMetadata(METADATA_KEY_DISC_NUMBER)?.toIntOrNull()
+            val trackId = trackNumber?.firstNumber()
+            val discNumber = retriever.extractMetadata(METADATA_KEY_DISC_NUMBER)?.firstNumber()
             val year = retriever.extractMetadata(METADATA_KEY_YEAR)?.toIntOrNull() ?: 0
             val dateAdded = try {
                 (File(path).lastModified() / 1000L).toInt()
@@ -643,6 +651,13 @@ class SimpleMediaScanner(private val context: Application) {
             context.notificationManager.cancel(SCANNER_NOTIFICATION_ID)
         }
     }
+
+    private fun String?.firstNumber(): Int? =
+        this?.trim()
+            ?.substringBefore('/')
+            ?.takeWhile { it.isDigit() }
+            ?.toIntOrNull()
+            ?.takeIf { it > 0 }
 
     companion object {
         private const val SCANNER_NOTIFICATION_ID = 43

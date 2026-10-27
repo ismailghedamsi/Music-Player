@@ -40,6 +40,8 @@ val Context.tracksDAO: SongsDao get() = getTracksDB().SongsDao()
 
 val Context.queueDAO: QueueItemsDao get() = getTracksDB().QueueItemsDao()
 
+val Context.queueStatesDAO: QueueStatesDao get() = getTracksDB().QueueStatesDao()
+
 val Context.artistDAO: ArtistsDao get() = getTracksDB().ArtistsDao()
 
 val Context.albumsDAO: AlbumsDao get() = getTracksDB().AlbumsDao()
@@ -295,5 +297,13 @@ fun Context.getPlaybackSetting(repeatMode: @Player.RepeatMode Int): PlaybackSett
         Player.REPEAT_MODE_ONE -> PlaybackSetting.REPEAT_TRACK
         Player.REPEAT_MODE_ALL -> PlaybackSetting.REPEAT_PLAYLIST
         else -> config.playbackSetting
+    }
+}
+
+fun Context.getFriendlyFolder(path: String): String {
+    return when (val parentPath = path.getParentPath()) {
+        internalStoragePath -> getString(org.fossify.commons.R.string.internal)
+        sdCardPath -> getString(org.fossify.commons.R.string.sd_card)
+        else -> parentPath.getFilenameFromPath()
     }
 }

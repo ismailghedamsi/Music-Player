@@ -1,7 +1,6 @@
 package org.fossify.musicplayer.playback
 
 import android.os.Handler
-import android.os.HandlerThread
 import android.os.Looper
 import androidx.annotation.OptIn
 import androidx.core.os.postDelayed
@@ -15,7 +14,9 @@ import org.fossify.commons.extensions.hasPermission
 import org.fossify.commons.extensions.showErrorToast
 import org.fossify.musicplayer.extensions.isReallyPlaying
 import org.fossify.musicplayer.extensions.nextMediaItem
+import org.fossify.musicplayer.extensions.runOnPlayerThread
 import org.fossify.musicplayer.helpers.NotificationHelper
+import org.fossify.musicplayer.helpers.QueueResumeHelper
 import org.fossify.musicplayer.helpers.getPermissionToRequest
 import org.fossify.musicplayer.playback.library.MediaItemProvider
 import org.fossify.musicplayer.playback.player.SimpleMusicPlayer
@@ -24,25 +25,44 @@ import org.fossify.musicplayer.playback.player.initializeSessionAndPlayer
 @OptIn(UnstableApi::class)
 class PlaybackService : MediaLibraryService(), MediaSessionService.Listener {
     internal lateinit var player: SimpleMusicPlayer
-    internal lateinit var playerThread: HandlerThread
     internal lateinit var playerListener: Player.Listener
-    internal lateinit var playerHandler: Handler
     internal lateinit var mediaSession: MediaLibrarySession
     internal lateinit var mediaItemProvider: MediaItemProvider
 
     internal var currentRoot = ""
+
+    // Per-queue resume (fork): re-save the current position every 10s while
+    // playing, so a kill/force-stop mid-track does not lose the stopping point.
+    // The helper throttles writes; this only re-posts the check.
+    private val queueResumeHandler = Handler(Looper.getMainLooper())
+    private val queueResumeSaver = object : Runnable {
+        override fun run() {
+            if (::player.isInitialized) {
+                withPlayer {
+                    // Only while actually playing: pausing already saves
+                    // immediately (forced) via the player listener.
+                    if (isReallyPlaying) {
+                        updatePlaybackState()
+                    }
+                }
+            }
+            queueResumeHandler.postDelayed(this, QueueResumeHelper.SAVE_INTERVAL_MS)
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
         setListener(this)
         initializeSessionAndPlayer(handleAudioFocus = true, handleAudioBecomingNoisy = true)
         initializeLibrary()
+        queueResumeHandler.postDelayed(queueResumeSaver, QueueResumeHelper.SAVE_INTERVAL_MS)
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
 
     override fun onDestroy() {
         super.onDestroy()
+        queueResumeHandler.removeCallbacks(queueResumeSaver)
         releaseMediaSession()
         clearListener()
         stopSleepTimer()
@@ -75,7 +95,9 @@ class PlaybackService : MediaLibraryService(), MediaSessionService.Listener {
         }
     }
 
-    internal fun withPlayer(callback: SimpleMusicPlayer.() -> Unit) = playerHandler.post { callback(player) }
+    internal fun withPlayer(callback: SimpleMusicPlayer.() -> Unit) {
+        player.runOnPlayerThread { callback(this) }
+    }
 
     private fun showNoPermissionNotification() {
         Handler(Looper.getMainLooper()).postDelayed(delayInMillis = 100L) {

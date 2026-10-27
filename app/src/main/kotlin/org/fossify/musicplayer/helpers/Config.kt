@@ -2,7 +2,6 @@ package org.fossify.musicplayer.helpers
 
 import android.content.Context
 import org.fossify.commons.helpers.BaseConfig
-import java.util.Arrays
 
 class Config(context: Context) : BaseConfig(context) {
     companion object {
@@ -12,6 +11,11 @@ class Config(context: Context) : BaseConfig(context) {
     var isShuffleEnabled: Boolean
         get() = prefs.getBoolean(SHUFFLE, false)
         set(shuffle) = prefs.edit().putBoolean(SHUFFLE, shuffle).apply()
+
+    /** Each queue remembers the exact track + position where it stopped. Default on. */
+    var rememberQueuePositions: Boolean
+        get() = prefs.getBoolean(REMEMBER_QUEUE_POSITIONS, true)
+        set(remember) = prefs.edit().putBoolean(REMEMBER_QUEUE_POSITIONS, remember).apply()
 
     var playbackSetting: PlaybackSetting
         get() = PlaybackSetting.values()[prefs.getInt(PLAYBACK_SETTING, PlaybackSetting.REPEAT_OFF.ordinal)]
@@ -116,7 +120,7 @@ class Config(context: Context) : BaseConfig(context) {
             .apply()
 
     var showTabs: Int
-        get() = prefs.getInt(SHOW_TABS, allTabsMask)
+        get() = prefs.getInt(SHOW_TABS, ALL_TABS_MASK)
         set(showTabs) = prefs.edit().putInt(SHOW_TABS, showTabs).apply()
 
     var excludedFolders: MutableSet<String>
@@ -124,7 +128,7 @@ class Config(context: Context) : BaseConfig(context) {
         set(excludedFolders) = prefs.edit().remove(EXCLUDED_FOLDERS).putStringSet(EXCLUDED_FOLDERS, excludedFolders).apply()
 
     fun addExcludedFolder(path: String) {
-        addExcludedFolders(HashSet(Arrays.asList(path)))
+        addExcludedFolders(HashSet(listOf(path)))
     }
 
     fun addExcludedFolders(paths: Set<String>) {

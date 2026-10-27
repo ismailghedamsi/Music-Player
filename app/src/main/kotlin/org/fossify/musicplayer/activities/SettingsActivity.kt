@@ -6,7 +6,6 @@ import org.fossify.commons.dialogs.RadioGroupDialog
 import org.fossify.commons.extensions.*
 import org.fossify.commons.helpers.IS_CUSTOMIZING_COLORS
 import org.fossify.commons.helpers.NavigationIcon
-import org.fossify.commons.helpers.isQPlus
 import org.fossify.commons.helpers.isTiramisuPlus
 import org.fossify.commons.models.RadioItem
 import org.fossify.musicplayer.R
@@ -14,10 +13,10 @@ import org.fossify.musicplayer.databinding.ActivitySettingsBinding
 import org.fossify.musicplayer.dialogs.ManageVisibleTabsDialog
 import org.fossify.musicplayer.extensions.config
 import org.fossify.musicplayer.extensions.sendCommand
+import org.fossify.musicplayer.helpers.QueueResumeHelper
 import org.fossify.musicplayer.helpers.SHOW_FILENAME_ALWAYS
 import org.fossify.musicplayer.helpers.SHOW_FILENAME_IF_UNAVAILABLE
-import org.fossify.musicplayer.helpers.SHOW_FILENAME_NEVER
-import org.fossify.musicplayer.playback.CustomCommands
+import org.fossify.musicplayer.helpers.SHOW_FILENAME_NEVERimport org.fossify.musicplayer.playback.CustomCommands
 import java.util.Locale
 import kotlin.system.exitProcess
 
@@ -26,19 +25,17 @@ class SettingsActivity : SimpleControllerActivity() {
     private val binding by viewBinding(ActivitySettingsBinding::inflate)
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        isMaterialActivity = true
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
 
-        updateMaterialActivityViews(binding.settingsCoordinator, binding.settingsHolder, useTransparentNavigation = true, useTopSearchMenu = false)
-        setupMaterialScrollListener(binding.settingsNestedScrollview, binding.settingsToolbar)
+        setupEdgeToEdge(padBottomSystem = listOf(binding.settingsNestedScrollview))
+        setupMaterialScrollListener(binding.settingsNestedScrollview, binding.settingsAppbar)
     }
 
     override fun onResume() {
         super.onResume()
-        setupToolbar(binding.settingsToolbar, NavigationIcon.Arrow)
+        setupTopAppBar(binding.settingsAppbar, NavigationIcon.Arrow)
 
-        setupPurchaseThankYou()
         setupCustomizeColors()
         setupCustomizeWidgetColors()
         setupUseEnglish()
@@ -46,6 +43,7 @@ class SettingsActivity : SimpleControllerActivity() {
         setupManageExcludedFolders()
         setupManageShownTabs()
         setupSwapPrevNext()
+        setupRememberQueuePositions()
         setupReplaceTitle()
         updateTextColors(binding.settingsNestedScrollview)
 
@@ -54,17 +52,9 @@ class SettingsActivity : SimpleControllerActivity() {
         }
     }
 
-    private fun setupPurchaseThankYou() = binding.apply {
-        settingsPurchaseThankYouHolder.beGoneIf(isOrWasThankYouInstalled())
-        settingsPurchaseThankYouHolder.setOnClickListener {
-            launchPurchaseThankYouIntent()
-        }
-    }
-
     private fun setupCustomizeColors() = binding.apply {
-        settingsColorCustomizationLabel.text = getCustomizeColorsString()
         settingsColorCustomizationHolder.setOnClickListener {
-            handleCustomizeColorsClick()
+            startCustomizationActivity()
         }
     }
 
@@ -100,6 +90,17 @@ class SettingsActivity : SimpleControllerActivity() {
         settingsSwapPrevNextHolder.setOnClickListener {
             settingsSwapPrevNext.toggle()
             config.swapPrevNext = settingsSwapPrevNext.isChecked
+        }
+    }
+
+    private fun setupRememberQueuePositions() = binding.apply {
+        settingsRememberQueuePositions.isChecked = config.rememberQueuePositions
+        settingsRememberQueuePositionsHolder.setOnClickListener {
+            settingsRememberQueuePositions.toggle()
+            config.rememberQueuePositions = settingsRememberQueuePositions.isChecked
+            if (!config.rememberQueuePositions) {
+                QueueResumeHelper.clearAll(this@SettingsActivity)
+            }
         }
     }
 
@@ -143,7 +144,6 @@ class SettingsActivity : SimpleControllerActivity() {
     }
 
     private fun setupManageExcludedFolders() {
-        binding.settingsManageExcludedFoldersHolder.beVisibleIf(isQPlus())
         binding.settingsManageExcludedFoldersHolder.setOnClickListener {
             startActivity(Intent(this, ExcludedFoldersActivity::class.java))
         }

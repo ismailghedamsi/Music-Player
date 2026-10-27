@@ -10,7 +10,7 @@ import org.fossify.musicplayer.interfaces.*
 import org.fossify.musicplayer.models.*
 import org.fossify.musicplayer.objects.MyExecutor
 
-@Database(entities = [Track::class, Playlist::class, QueueItem::class, Artist::class, Album::class, Genre::class], version = 15)
+@Database(entities = [Track::class, Playlist::class, QueueItem::class, Artist::class, Album::class, Genre::class, QueueState::class, QueueStateItem::class], version = 16)
 abstract class SongsDatabase : RoomDatabase() {
 
     abstract fun SongsDao(): SongsDao
@@ -18,6 +18,8 @@ abstract class SongsDatabase : RoomDatabase() {
     abstract fun PlaylistsDao(): PlaylistsDao
 
     abstract fun QueueItemsDao(): QueueItemsDao
+
+    abstract fun QueueStatesDao(): QueueStatesDao
 
     abstract fun ArtistsDao(): ArtistsDao
 
@@ -48,6 +50,7 @@ abstract class SongsDatabase : RoomDatabase() {
                             .addMigrations(MIGRATION_12_13)
                             .addMigrations(MIGRATION_13_14)
                             .addMigrations(MIGRATION_14_15)
+                            .addMigrations(MIGRATION_15_16)
                             .build()
                     }
                 }
@@ -229,6 +232,28 @@ abstract class SongsDatabase : RoomDatabase() {
                     execSQL("DROP TABLE tracks")
                     execSQL("ALTER TABLE tracks_new RENAME to tracks")
                     execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_tracks_id` ON `tracks` (`media_store_id`, `playlist_id`)")
+                }
+            }
+        }
+
+        // Per-queue resume positions (fork): one saved state per exact queue,
+        // so every album/playlist remembers where it stopped independently.
+        private val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.apply {
+                    execSQL(
+                        "CREATE TABLE IF NOT EXISTS `queue_states` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `queue_key` TEXT NOT NULL, " +
+                            "`label` TEXT NOT NULL, `current_track_id` INTEGER NOT NULL, `current_index` INTEGER NOT NULL, " +
+                            "`last_position_ms` INTEGER NOT NULL, `track_count` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, " +
+                            "`shuffle_enabled` INTEGER NOT NULL, `repeat_setting` INTEGER NOT NULL)"
+                    )
+                    execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_queue_states_queue_key` ON `queue_states` (`queue_key`)")
+                    execSQL("CREATE INDEX IF NOT EXISTS `index_queue_states_updated_at` ON `queue_states` (`updated_at`)")
+                    execSQL(
+                        "CREATE TABLE IF NOT EXISTS `queue_state_items` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `queue_key` TEXT NOT NULL, " +
+                            "`track_id` INTEGER NOT NULL, `track_order` INTEGER NOT NULL)"
+                    )
+                    execSQL("CREATE INDEX IF NOT EXISTS `index_queue_state_items_queue_key` ON `queue_state_items` (`queue_key`)")
                 }
             }
         }
