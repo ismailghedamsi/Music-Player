@@ -12,6 +12,7 @@ import org.fossify.commons.extensions.areSystemAnimationsEnabled
 import org.fossify.commons.extensions.beGoneIf
 import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.commons.extensions.normalizeString
+import org.fossify.commons.extensions.toast
 import org.fossify.commons.extensions.viewBinding
 import org.fossify.commons.helpers.NavigationIcon
 import org.fossify.commons.helpers.ensureBackgroundThread
@@ -19,7 +20,10 @@ import org.fossify.musicplayer.R
 import org.fossify.musicplayer.adapters.QueueAdapter
 import org.fossify.musicplayer.databinding.ActivityQueueBinding
 import org.fossify.musicplayer.dialogs.NewPlaylistDialog
+import org.fossify.musicplayer.dialogs.NewQueueDialog
 import org.fossify.musicplayer.extensions.*
+import org.fossify.musicplayer.helpers.NamedQueuesHelper
+import org.fossify.musicplayer.helpers.QueueResumeHelper
 import org.fossify.musicplayer.helpers.RoomHelper
 import org.fossify.musicplayer.models.Track
 
@@ -64,6 +68,7 @@ class QueueActivity : SimpleControllerActivity() {
         binding.queueToolbar.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.create_playlist_from_queue -> createPlaylistFromQueue()
+                R.id.save_playing_queue -> savePlayingQueue()
                 else -> return@setOnMenuItemClickListener false
             }
             return@setOnMenuItemClickListener true
@@ -169,6 +174,25 @@ class QueueActivity : SimpleControllerActivity() {
 
             ensureBackgroundThread {
                 RoomHelper(this).insertTracksWithPlaylist(tracks)
+            }
+        }
+    }
+
+    /** Named queues (fork): keep the queue now playing as a queue of its own, keeping its stopping point. */
+    private fun savePlayingQueue() {
+        val tracks = getAdapter()?.items?.toList() ?: return
+        if (tracks.isEmpty()) return
+        val defaultName = QueueResumeHelper.deriveLabel(tracks).ifBlank { NamedQueuesHelper.nextDefaultName(this) }
+        NewQueueDialog(this, defaultName) { name ->
+            ensureBackgroundThread {
+                val queueId = NamedQueuesHelper.createQueue(this, name, tracks)
+                runOnUiThread {
+                    if (queueId != -1L) {
+                        toast(R.string.queue_saved)
+                    } else {
+                        toast(org.fossify.commons.R.string.unknown_error_occurred)
+                    }
+                }
             }
         }
     }
