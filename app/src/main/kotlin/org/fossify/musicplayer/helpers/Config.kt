@@ -12,6 +12,11 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(SHUFFLE, false)
         set(shuffle) = prefs.edit().putBoolean(SHUFFLE, shuffle).apply()
 
+    /** Each queue remembers the exact track + position where it stopped. Default on. */
+    var rememberQueuePositions: Boolean
+        get() = prefs.getBoolean(REMEMBER_QUEUE_POSITIONS, true)
+        set(remember) = prefs.edit().putBoolean(REMEMBER_QUEUE_POSITIONS, remember).apply()
+
     var playbackSetting: PlaybackSetting
         get() = PlaybackSetting.values()[prefs.getInt(PLAYBACK_SETTING, PlaybackSetting.REPEAT_OFF.ordinal)]
         set(playbackSetting) = prefs.edit().putInt(PLAYBACK_SETTING, playbackSetting.ordinal).apply()

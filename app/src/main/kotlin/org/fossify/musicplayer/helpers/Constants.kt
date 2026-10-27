@@ -49,6 +49,7 @@ const val EXTRA_SHUFFLE_INDICES = "EXTRA_SHUFFLE_INDICES"
 
 // shared preferences
 const val SHUFFLE = "shuffle"
+const val REMEMBER_QUEUE_POSITIONS = "remember_queue_positions"
 const val PLAYBACK_SETTING = "playback_setting"
 const val AUTOPLAY = "autoplay"
 const val SHOW_FILENAME = "show_filename"

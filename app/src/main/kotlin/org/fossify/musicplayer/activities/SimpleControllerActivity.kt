@@ -10,8 +10,10 @@ import androidx.media3.session.MediaController
 import org.fossify.commons.extensions.toast
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isRPlus
+import org.fossify.musicplayer.R
 import org.fossify.musicplayer.extensions.*
 import org.fossify.musicplayer.helpers.EXTRA_NEXT_MEDIA_ID
+import org.fossify.musicplayer.helpers.QueueResumeHelper
 import org.fossify.musicplayer.helpers.SimpleMediaController
 import org.fossify.musicplayer.models.Events
 import org.fossify.musicplayer.models.Track
@@ -53,16 +55,33 @@ abstract class SimpleControllerActivity : SimpleActivity(), Player.Listener {
     fun withPlayer(callback: MediaController.() -> Unit) = controller.withController(callback)
 
     fun prepareAndPlay(tracks: List<Track>, startIndex: Int = 0, startPositionMs: Long = 0, startActivity: Boolean = true) {
-        withPlayer {
-            if (startActivity) {
-                startActivity(
-                    Intent(this@SimpleControllerActivity, TrackActivity::class.java)
-                )
+        // Per-queue resume (fork): look the saved position up off the main
+        // thread first, then prepare on the player thread as before.
+        ensureBackgroundThread {
+            val resume = if (startPositionMs == 0L) {
+                QueueResumeHelper.lookupResume(this@SimpleControllerActivity, tracks, startIndex)
+            } else {
+                null
             }
+            val resolvedIndex = resume?.first ?: startIndex
+            val resolvedPositionMs = resume?.second ?: startPositionMs
 
-            prepareUsingTracks(tracks = tracks, startIndex = startIndex, startPositionMs = startPositionMs, play = true) { success ->
-                if (success) {
-                    updatePlaybackInfo(this)
+            runOnUiThread {
+                withPlayer {
+                    if (startActivity) {
+                        startActivity(
+                            Intent(this@SimpleControllerActivity, TrackActivity::class.java)
+                        )
+                    }
+
+                    prepareUsingTracks(tracks = tracks, startIndex = resolvedIndex, startPositionMs = resolvedPositionMs, play = true) { success ->
+                        if (success) {
+                            updatePlaybackInfo(this)
+                            if (resume != null && resolvedPositionMs > 0L) {
+                                this@SimpleControllerActivity.toast(R.string.queue_resumed_where_you_left_off)
+                            }
+                        }
+                    }
                 }
             }
         }

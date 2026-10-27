@@ -13,10 +13,10 @@ import org.fossify.musicplayer.databinding.ActivitySettingsBinding
 import org.fossify.musicplayer.dialogs.ManageVisibleTabsDialog
 import org.fossify.musicplayer.extensions.config
 import org.fossify.musicplayer.extensions.sendCommand
+import org.fossify.musicplayer.helpers.QueueResumeHelper
 import org.fossify.musicplayer.helpers.SHOW_FILENAME_ALWAYS
 import org.fossify.musicplayer.helpers.SHOW_FILENAME_IF_UNAVAILABLE
-import org.fossify.musicplayer.helpers.SHOW_FILENAME_NEVER
-import org.fossify.musicplayer.playback.CustomCommands
+import org.fossify.musicplayer.helpers.SHOW_FILENAME_NEVERimport org.fossify.musicplayer.playback.CustomCommands
 import java.util.Locale
 import kotlin.system.exitProcess
 
@@ -43,6 +43,7 @@ class SettingsActivity : SimpleControllerActivity() {
         setupManageExcludedFolders()
         setupManageShownTabs()
         setupSwapPrevNext()
+        setupRememberQueuePositions()
         setupReplaceTitle()
         updateTextColors(binding.settingsNestedScrollview)
 
@@ -89,6 +90,17 @@ class SettingsActivity : SimpleControllerActivity() {
         settingsSwapPrevNextHolder.setOnClickListener {
             settingsSwapPrevNext.toggle()
             config.swapPrevNext = settingsSwapPrevNext.isChecked
+        }
+    }
+
+    private fun setupRememberQueuePositions() = binding.apply {
+        settingsRememberQueuePositions.isChecked = config.rememberQueuePositions
+        settingsRememberQueuePositionsHolder.setOnClickListener {
+            settingsRememberQueuePositions.toggle()
+            config.rememberQueuePositions = settingsRememberQueuePositions.isChecked
+            if (!config.rememberQueuePositions) {
+                QueueResumeHelper.clearAll(this@SettingsActivity)
+            }
         }
     }
 

@@ -16,6 +16,7 @@ import org.fossify.musicplayer.extensions.config
 import org.fossify.musicplayer.extensions.currentMediaItems
 import org.fossify.musicplayer.extensions.setRepeatMode
 import org.fossify.musicplayer.helpers.EXTRA_OPEN_PLAYER
+import org.fossify.musicplayer.helpers.QueueResumeHelper
 import org.fossify.musicplayer.helpers.SEEK_INTERVAL_MS
 import org.fossify.musicplayer.playback.PlaybackService
 import org.fossify.musicplayer.playback.PlaybackService.Companion.updatePlaybackInfo
@@ -93,6 +94,27 @@ internal fun PlaybackService.updatePlaybackState() {
                 mediaItems = currentMediaItems,
                 current = currentMediaItem,
                 startPosition = currentPosition
+            )
+            // Per-queue resume (fork): remember this exact queue's track and
+            // millisecond position, independently of every other queue.
+            // Forced on pause so the exact stopping point is always recorded.
+            val items = currentMediaItems
+            val albumTitles = items.mapNotNull { it.mediaMetadata.albumTitle?.toString() }.distinct()
+            val label = if (albumTitles.size == 1) {
+                val artist = items.firstOrNull()?.mediaMetadata?.artist?.toString().orEmpty()
+                if (artist.isNotEmpty()) "$artist — ${albumTitles.first()}" else albumTitles.first()
+            } else {
+                ""
+            }
+            QueueResumeHelper.saveQueueState(
+                context = this@updatePlaybackState,
+                mediaItems = items,
+                current = currentMediaItem,
+                positionMs = currentPosition,
+                shuffleEnabled = shuffleModeEnabled,
+                repeatSettingOrdinal = this@updatePlaybackState.config.playbackSetting.ordinal,
+                label = label,
+                force = !isPlaying
             )
         }
     }

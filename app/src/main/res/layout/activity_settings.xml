@@ -161,6 +161,21 @@
             </RelativeLayout>
 
             <RelativeLayout
+                android:id="@+id/settings_remember_queue_positions_holder"
+                style="@style/SettingsHolderSwitchStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <org.fossify.commons.views.MyMaterialSwitch
+                    android:id="@+id/settings_remember_queue_positions"
+                    style="@style/SettingsSwitchStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/remember_queue_positions" />
+
+            </RelativeLayout>
+
+            <RelativeLayout
                 android:id="@+id/settings_swap_prev_next_holder"
                 style="@style/SettingsHolderSwitchStyle"
                 android:layout_width="match_parent"
