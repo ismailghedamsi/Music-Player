@@ -21,6 +21,7 @@ import org.fossify.musicplayer.dialogs.EditDialog
 import org.fossify.musicplayer.extensions.audioHelper
 import org.fossify.musicplayer.extensions.config
 import org.fossify.musicplayer.extensions.getAlbumCoverArt
+import org.fossify.musicplayer.helpers.QueueResumeHelper
 import org.fossify.musicplayer.helpers.ResumeMarker
 import org.fossify.musicplayer.models.AlbumHeader
 import org.fossify.musicplayer.models.ListItem
@@ -146,13 +147,17 @@ class TracksHeaderAdapter(activity: SimpleActivity, items: ArrayList<ListItem>, 
 
             // Per-queue resume (fork): highlight the track playback stopped
             // on, with its saved position, so it can be tapped to continue.
+            // A position under 5 seconds still highlights the song, but
+            // keeps its normal length text instead of "resumes at 0:0X".
             val marker = resumeMarker
             if (marker != null && track.mediaStoreId == marker.trackId) {
                 val primaryColor = context.getProperPrimaryColor()
                 trackTitle.setTextColor(primaryColor)
-                val resumePosition = (marker.positionMs / 1000).toInt().getFormattedDuration()
-                trackDuration.text = context.getString(R.string.saved_queue_resume_at, resumePosition)
-                trackDuration.setTextColor(primaryColor)
+                if (marker.positionMs >= QueueResumeHelper.MIN_RESUME_POSITION_MS) {
+                    val resumePosition = (marker.positionMs / 1000).toInt().getFormattedDuration()
+                    trackDuration.text = context.getString(R.string.saved_queue_resume_at, resumePosition)
+                    trackDuration.setTextColor(primaryColor)
+                }
             }
             if (track.discNumber != null) {
                 val trackNumber = if (track.trackId != null) track.trackId.toString().padStart(2, '0') else ""
