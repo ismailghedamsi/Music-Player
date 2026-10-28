@@ -14,6 +14,7 @@ import org.fossify.musicplayer.dialogs.ManageVisibleTabsDialog
 import org.fossify.musicplayer.extensions.config
 import org.fossify.musicplayer.extensions.sendCommand
 import org.fossify.musicplayer.helpers.NamedQueuesHelper
+import org.fossify.musicplayer.helpers.PlaylistResumeHelper
 import org.fossify.musicplayer.helpers.QueueResumeHelper
 import org.fossify.musicplayer.helpers.SHOW_FILENAME_ALWAYS
 import org.fossify.musicplayer.helpers.SHOW_FILENAME_IF_UNAVAILABLE
@@ -103,6 +104,7 @@ class SettingsActivity : SimpleControllerActivity() {
             if (!config.rememberQueuePositions) {
                 QueueResumeHelper.clearAll(this@SettingsActivity)
                 NamedQueuesHelper.clearAllPositions(this@SettingsActivity)
+                PlaylistResumeHelper.clearAll(this@SettingsActivity)
             }
         }
     }
