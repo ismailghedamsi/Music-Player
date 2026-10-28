@@ -50,7 +50,10 @@ and the position in **milliseconds**, plus shuffle/repeat and a label.
   M:SS"), opening the playlist highlights that song and scrolls straight
   to it, and tapping it continues from the saved position. Keying by
   playlist id means it survives re-sorting the playlist, adding or
-  removing songs, and shuffle. Deleting a playlist deletes its saved
+  removing songs, and shuffle. A song played only briefly is still
+  remembered (it resumes from its start). The playlist id is recorded
+  when playback starts from the playlist, because the player's fast
+  media items carry no metadata to read it back from. Deleting a playlist deletes its saved
   stopping point with it; turning the Settings toggle off forgets them
   all.
 - **Named queues, like playlists** (main menu → "Queues", DB v17 tables
