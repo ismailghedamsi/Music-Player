@@ -61,7 +61,11 @@ abstract class SimpleControllerActivity : SimpleActivity(), Player.Listener {
         // forceFresh skips the lookup: the tap itself decides the track and
         // it starts from 0 (used by the queue detail screen). When a
         // playlist id is given, the playlist's own saved stopping point is
-        // used, so resume survives re-sorting and shuffle.
+        // used, so resume survives re-sorting and shuffle. Record which
+        // playlist playback comes from: the player's fast media items
+        // carry no extras, so the playlist state sync cannot read it
+        // back from the playing items.
+        PlaylistResumeHelper.setActivePlaylist(playlistId)
         ensureBackgroundThread {
             val resume = if (startPositionMs == 0L && !forceFresh) {
                 if (playlistId > 0) {
