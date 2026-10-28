@@ -78,6 +78,13 @@ and the position in **milliseconds**, plus shuffle/repeat and a label.
   and paused without being saved as a named queue.
 - The stock single-queue resume (`queue_items`) is kept untouched for
   external media-browser / Android Auto resume paths.
+- **Performance (fix, 2026-10-27):** the database runs on a single
+  thread and a write transaction blocks reads, so the first version
+  rewrote the whole saved track list every 10 seconds and on every
+  pause/track change, stalling list loads. Position saves are now a
+  single-row UPDATE when the track list is unchanged; the full list is
+  written only when the list itself changes, and the queue-key hash is
+  cached for a repeated identical list.
 
 ### Files changed
 
