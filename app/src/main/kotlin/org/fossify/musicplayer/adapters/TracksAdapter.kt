@@ -24,6 +24,7 @@ import org.fossify.musicplayer.extensions.config
 import org.fossify.musicplayer.extensions.getTrackCoverArt
 import org.fossify.musicplayer.helpers.ALL_TRACKS_PLAYLIST_ID
 import org.fossify.musicplayer.helpers.PLAYER_SORT_BY_CUSTOM
+import org.fossify.musicplayer.helpers.QueueResumeHelper
 import org.fossify.musicplayer.helpers.ResumeMarker
 import org.fossify.musicplayer.inlines.indexOfFirstOrNull
 import org.fossify.musicplayer.models.Events
@@ -216,12 +217,16 @@ class TracksAdapter(
 
             // Per-queue resume (fork): highlight the track playback stopped
             // on, with its saved position, so it can be tapped to continue.
+            // A position under 5 seconds still highlights the song, but
+            // keeps its normal length text instead of "resumes at 0:0X".
             val marker = resumeMarker
             if (marker != null && track.mediaStoreId == marker.trackId) {
                 trackTitle.setTextColor(properPrimaryColor)
-                val resumePosition = (marker.positionMs / 1000).toInt().getFormattedDuration()
-                trackDuration.text = context.getString(R.string.saved_queue_resume_at, resumePosition)
-                trackDuration.setTextColor(properPrimaryColor)
+                if (marker.positionMs >= QueueResumeHelper.MIN_RESUME_POSITION_MS) {
+                    val resumePosition = (marker.positionMs / 1000).toInt().getFormattedDuration()
+                    trackDuration.text = context.getString(R.string.saved_queue_resume_at, resumePosition)
+                    trackDuration.setTextColor(properPrimaryColor)
+                }
             }
             activity.getTrackCoverArt(track) { coverArt ->
                 loadImage(trackImage, coverArt, placeholderBig)
