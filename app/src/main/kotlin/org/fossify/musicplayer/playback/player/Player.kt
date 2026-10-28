@@ -17,6 +17,7 @@ import org.fossify.musicplayer.extensions.currentMediaItems
 import org.fossify.musicplayer.extensions.setRepeatMode
 import org.fossify.musicplayer.helpers.EXTRA_OPEN_PLAYER
 import org.fossify.musicplayer.helpers.NamedQueuesHelper
+import org.fossify.musicplayer.helpers.PlaylistResumeHelper
 import org.fossify.musicplayer.helpers.QueueResumeHelper
 import org.fossify.musicplayer.helpers.SEEK_INTERVAL_MS
 import org.fossify.musicplayer.playback.PlaybackService
@@ -121,6 +122,16 @@ internal fun PlaybackService.updatePlaybackState() {
             // queue, keep that queue's stored stopping point in step too,
             // so switching to another queue and back shows the right song.
             NamedQueuesHelper.syncPositionFromPlayback(
+                context = this@updatePlaybackState,
+                mediaItems = items,
+                current = currentMediaItem,
+                positionMs = currentPosition,
+                force = !isPlaying
+            )
+            // Per-playlist resume (fork): if the song now playing belongs
+            // to a playlist, keep that playlist's stored stopping point in
+            // step too, so every playlist resumes where it was left.
+            PlaylistResumeHelper.syncFromPlayback(
                 context = this@updatePlaybackState,
                 mediaItems = items,
                 current = currentMediaItem,
