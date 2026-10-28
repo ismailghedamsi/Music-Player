@@ -44,6 +44,8 @@ val Context.queueStatesDAO: QueueStatesDao get() = getTracksDB().QueueStatesDao(
 
 val Context.namedQueuesDAO: NamedQueuesDao get() = getTracksDB().NamedQueuesDao()
 
+val Context.playlistStatesDAO: PlaylistStatesDao get() = getTracksDB().PlaylistStatesDao()
+
 val Context.artistDAO: ArtistsDao get() = getTracksDB().ArtistsDao()
 
 val Context.albumsDAO: AlbumsDao get() = getTracksDB().AlbumsDao()
