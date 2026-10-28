@@ -209,7 +209,7 @@ object NamedQueuesHelper {
         if (trackIds.isEmpty()) return
         val currentId = current.mediaId.toLongOrNull() ?: return
         val currentIndex = trackIds.indexOf(currentId).takeIf { it >= 0 } ?: return
-        val key = QueueResumeHelper.queueKey(trackIds)
+        val key = QueueResumeHelper.queueKeyCached(trackIds)
         val now = System.currentTimeMillis()
         if (!force && key == lastSyncedKey && kotlin.math.abs(positionMs - lastSyncedPositionMs) < QueueResumeHelper.SAVE_INTERVAL_MS &&
             now - lastSyncedAtMs < QueueResumeHelper.SAVE_INTERVAL_MS
