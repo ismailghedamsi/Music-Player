@@ -13,6 +13,7 @@ import org.fossify.commons.helpers.isRPlus
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.extensions.*
 import org.fossify.musicplayer.helpers.EXTRA_NEXT_MEDIA_ID
+import org.fossify.musicplayer.helpers.PlaylistResumeHelper
 import org.fossify.musicplayer.helpers.QueueResumeHelper
 import org.fossify.musicplayer.helpers.SimpleMediaController
 import org.fossify.musicplayer.models.Events
@@ -54,14 +55,20 @@ abstract class SimpleControllerActivity : SimpleActivity(), Player.Listener {
 
     fun withPlayer(callback: MediaController.() -> Unit) = controller.withController(callback)
 
-    fun prepareAndPlay(tracks: List<Track>, startIndex: Int = 0, startPositionMs: Long = 0, startActivity: Boolean = true, forceFresh: Boolean = false) {
+    fun prepareAndPlay(tracks: List<Track>, startIndex: Int = 0, startPositionMs: Long = 0, startActivity: Boolean = true, forceFresh: Boolean = false, playlistId: Int = -1) {
         // Per-queue resume (fork): look the saved position up off the main
         // thread first, then prepare on the player thread as before.
         // forceFresh skips the lookup: the tap itself decides the track and
-        // it starts from 0 (used by the queue detail screen).
+        // it starts from 0 (used by the queue detail screen). When a
+        // playlist id is given, the playlist's own saved stopping point is
+        // used, so resume survives re-sorting and shuffle.
         ensureBackgroundThread {
             val resume = if (startPositionMs == 0L && !forceFresh) {
-                QueueResumeHelper.lookupResume(this@SimpleControllerActivity, tracks, startIndex)
+                if (playlistId > 0) {
+                    PlaylistResumeHelper.lookupResume(this@SimpleControllerActivity, playlistId, tracks, startIndex)
+                } else {
+                    QueueResumeHelper.lookupResume(this@SimpleControllerActivity, tracks, startIndex)
+                }
             } else {
                 null
             }
