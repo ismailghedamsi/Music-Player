@@ -19,6 +19,7 @@ import org.fossify.musicplayer.extensions.config
 import org.fossify.musicplayer.extensions.mediaScanner
 import org.fossify.musicplayer.extensions.viewBinding
 import org.fossify.musicplayer.helpers.PLAYLIST
+import org.fossify.musicplayer.helpers.PlaylistResumeHelper
 import org.fossify.musicplayer.helpers.TAB_PLAYLISTS
 import org.fossify.musicplayer.models.Events
 import org.fossify.musicplayer.models.Playlist
@@ -46,6 +47,15 @@ class PlaylistsFragment(context: Context, attributeSet: AttributeSet) : MyViewPa
             playlists.sortSafely(context.config.playlistSorting)
             this.playlists = playlists
 
+            // Per-playlist resume (fork): each playlist's last-played song
+            // for its row, so the stopping point is visible at a glance.
+            val lastPlayedTexts = HashMap<Int, String>()
+            playlists.forEach { playlist ->
+                PlaylistResumeHelper.lastPlayedText(context, playlist.id)?.let { text ->
+                    lastPlayedTexts[playlist.id] = text
+                }
+            }
+
             activity.runOnUiThread {
                 val scanning = activity.mediaScanner.isScanning()
                 binding.playlistsPlaceholder.text = if (scanning) {
@@ -65,6 +75,7 @@ class PlaylistsFragment(context: Context, attributeSet: AttributeSet) : MyViewPa
                             activity.startActivity(this)
                         }
                     }.apply {
+                        setLastPlayedTexts(lastPlayedTexts)
                         binding.playlistsList.adapter = this
                     }
 
@@ -73,6 +84,7 @@ class PlaylistsFragment(context: Context, attributeSet: AttributeSet) : MyViewPa
                     }
                 } else {
                     (adapter as PlaylistsAdapter).updateItems(playlists)
+                    (adapter as PlaylistsAdapter).setLastPlayedTexts(lastPlayedTexts)
                 }
             }
         }
