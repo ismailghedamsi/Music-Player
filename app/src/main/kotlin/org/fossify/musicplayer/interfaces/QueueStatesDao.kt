@@ -31,6 +31,23 @@ interface QueueStatesDao {
     @Query("DELETE FROM queue_states WHERE queue_key = :queueKey")
     fun deleteState(queueKey: String)
 
+    /** Update only the stopping point of a queue whose track list is already stored. */
+    @Query(
+        "UPDATE queue_states SET current_track_id = :trackId, current_index = :index, " +
+            "last_position_ms = :positionMs, track_count = :trackCount, updated_at = :updatedAt, " +
+            "shuffle_enabled = :shuffleEnabled, repeat_setting = :repeatSetting WHERE queue_key = :queueKey"
+    )
+    fun updatePosition(
+        queueKey: String,
+        trackId: Long,
+        index: Int,
+        positionMs: Long,
+        trackCount: Int,
+        updatedAt: Long,
+        shuffleEnabled: Boolean,
+        repeatSetting: Int
+    )
+
     @Query("DELETE FROM queue_state_items WHERE queue_key = :queueKey")
     fun deleteItems(queueKey: String)
 
