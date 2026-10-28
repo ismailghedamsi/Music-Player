@@ -43,6 +43,16 @@ and the position in **milliseconds**, plus shuffle/repeat and a label.
   from the next track, or restarts the queue if it was the last track.
 - Settings toggle: "Remember where each queue stopped" (on by default).
   Turning it off deletes all saved positions.
+- **Every playlist remembers where it stopped** (DB v18 table
+  `playlist_states`, keyed by playlist id): the song playback stopped on
+  in each playlist, and the exact position in it. The playlist's row in
+  the Playlists tab shows it ("12 Tracks • Artist — Title • resumes at
+  M:SS"), opening the playlist highlights that song and scrolls straight
+  to it, and tapping it continues from the saved position. Keying by
+  playlist id means it survives re-sorting the playlist, adding or
+  removing songs, and shuffle. Deleting a playlist deletes its saved
+  stopping point with it; turning the Settings toggle off forgets them
+  all.
 - **Named queues, like playlists** (main menu → "Queues", DB v17 tables
   `named_queues` / `named_queue_items`): a queue is a stored list of its
   own, with a name and its own stopping point. Create one from any track
@@ -82,6 +92,14 @@ and the position in **milliseconds**, plus shuffle/repeat and a label.
   (`SavedQueuesActivity`, `SavedQueuesAdapter`, `SavedQueue`) was replaced
   by the Queues screen; the automatic per-list positions in `queue_states`
   are unchanged and still back the highlights in plain track lists.
+- Per-playlist resume: new `models/PlaylistState.kt`,
+  `interfaces/PlaylistStatesDao.kt`, `helpers/PlaylistResumeHelper.kt`;
+  `SongsDatabase.kt` version 17 → 18, `MIGRATION_17_18` creates
+  `playlist_states`. Wired into `prepareAndPlay()` (playlist-id lookup),
+  `TracksActivity` (playlist marker first, per-list marker as fallback),
+  `playback/player/Player.kt` (sync from playback), `SettingsActivity`
+  (toggle-off clears), `PlaylistsAdapter` (row text + delete hook) and
+  `PlaylistsFragment` (row texts).
 - `helpers/Config.kt`, `helpers/Constants.kt`: `rememberQueuePositions`
   preference (default on).
 - `playback/player/Player.kt`: `updatePlaybackState()` also saves the
