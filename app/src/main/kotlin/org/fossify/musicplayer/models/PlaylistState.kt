@@ -19,7 +19,7 @@ import androidx.room.PrimaryKey
     indices = [Index(value = ["updated_at"])]
 )
 data class PlaylistState(
-    @PrimaryKey var playlistId: Int,
+    @PrimaryKey @ColumnInfo(name = "playlist_id") var playlistId: Int,
     @ColumnInfo(name = "current_track_id") var currentTrackId: Long,
     @ColumnInfo(name = "current_index") var currentIndex: Int,
     /** Exact playback position in milliseconds. 0 means never played. */
