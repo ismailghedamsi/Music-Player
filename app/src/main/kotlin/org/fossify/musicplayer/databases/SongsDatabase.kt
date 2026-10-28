@@ -10,7 +10,7 @@ import org.fossify.musicplayer.interfaces.*
 import org.fossify.musicplayer.models.*
 import org.fossify.musicplayer.objects.MyExecutor
 
-@Database(entities = [Track::class, Playlist::class, QueueItem::class, Artist::class, Album::class, Genre::class, QueueState::class, QueueStateItem::class, NamedQueue::class, NamedQueueItem::class], version = 17)
+@Database(entities = [Track::class, Playlist::class, QueueItem::class, Artist::class, Album::class, Genre::class, QueueState::class, QueueStateItem::class, NamedQueue::class, NamedQueueItem::class, PlaylistState::class], version = 18)
 abstract class SongsDatabase : RoomDatabase() {
 
     abstract fun SongsDao(): SongsDao
@@ -22,6 +22,8 @@ abstract class SongsDatabase : RoomDatabase() {
     abstract fun QueueStatesDao(): QueueStatesDao
 
     abstract fun NamedQueuesDao(): NamedQueuesDao
+
+    abstract fun PlaylistStatesDao(): PlaylistStatesDao
 
     abstract fun ArtistsDao(): ArtistsDao
 
@@ -54,6 +56,7 @@ abstract class SongsDatabase : RoomDatabase() {
                             .addMigrations(MIGRATION_14_15)
                             .addMigrations(MIGRATION_15_16)
                             .addMigrations(MIGRATION_16_17)
+                            .addMigrations(MIGRATION_17_18)
                             .build()
                     }
                 }
@@ -277,6 +280,19 @@ abstract class SongsDatabase : RoomDatabase() {
                             "FOREIGN KEY(`queue_id`) REFERENCES `named_queues`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)"
                     )
                     execSQL("CREATE INDEX IF NOT EXISTS `index_named_queue_items_queue_id` ON `named_queue_items` (`queue_id`)")
+                }
+            }
+        }
+
+        private val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.apply {
+                    execSQL(
+                        "CREATE TABLE IF NOT EXISTS `playlist_states` (`playlist_id` INTEGER NOT NULL, `current_track_id` INTEGER NOT NULL, " +
+                            "`current_index` INTEGER NOT NULL, `last_position_ms` INTEGER NOT NULL, " +
+                            "`track_count` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`playlist_id`))"
+                    )
+                    execSQL("CREATE INDEX IF NOT EXISTS `index_playlist_states_updated_at` ON `playlist_states` (`updated_at`)")
                 }
             }
         }
