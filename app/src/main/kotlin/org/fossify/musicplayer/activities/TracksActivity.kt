@@ -32,6 +32,7 @@ import org.fossify.musicplayer.dialogs.ExportPlaylistDialog
 import org.fossify.musicplayer.dialogs.NewQueueDialog
 import org.fossify.musicplayer.extensions.audioHelper
 import org.fossify.musicplayer.helpers.NamedQueuesHelper
+import org.fossify.musicplayer.helpers.PlaylistResumeHelper
 import org.fossify.musicplayer.helpers.QueueResumeHelper
 import org.fossify.musicplayer.extensions.config
 import org.fossify.musicplayer.extensions.getFolderTracks
@@ -226,10 +227,17 @@ class TracksActivity : SimpleMusicActivity() {
                 }
             }
 
-            // Per-queue resume (fork): find this list's saved stopping point
-            // (if any) so the stopped-on track can be highlighted and the
-            // list opened scrolled straight to it.
-            val resumeMarker = QueueResumeHelper.resumeMarker(this, tracks)
+            // Per-playlist resume (fork): a playlist's own saved stopping
+            // point comes first, so it survives re-sorting and shuffle;
+            // the per-list position is the fallback. Either way the
+            // stopped-on track is highlighted and the list opens scrolled
+            // straight to it.
+            val resumeMarker = if (sourceType == TYPE_PLAYLIST && playlist != null) {
+                PlaylistResumeHelper.resumeMarker(this, playlist!!.id, tracks)
+                    ?: QueueResumeHelper.resumeMarker(this, tracks)
+            } else {
+                QueueResumeHelper.resumeMarker(this, tracks)
+            }
 
             runOnUiThread {
                 if (sourceType == TYPE_ALBUM) {
@@ -431,7 +439,8 @@ class TracksActivity : SimpleMusicActivity() {
         handleNotificationPermission { granted ->
             if (granted) {
                 val startIndex = tracks.indexOf(track)
-                prepareAndPlay(tracks, startIndex)
+                val playlistId = if (sourceType == TYPE_PLAYLIST) playlist?.id ?: -1 else -1
+                prepareAndPlay(tracks, startIndex, playlistId = playlistId)
             } else {
                 PermissionRequiredDialog(this, org.fossify.commons.R.string.allow_notifications_music_player, { openNotificationSettings() })
             }
