@@ -55,11 +55,35 @@ object QueueResumeHelper {
     @Volatile
     private var lastSavedAtMs: Long = 0L
 
+    /** Key of the queue whose full track list is already stored in the database this process. */
+    @Volatile
+    private var lastSavedItemsKey: String? = null
+
+    /** Last track-id list the key was computed for, so a huge list is not re-hashed on every player event. */
+    @Volatile
+    private var lastKeyTrackIds: List<Long>? = null
+
+    @Volatile
+    private var lastKeyValue: String? = null
+
     /** Stable key for a queue: SHA-256 of its ordered track ids. */
     fun queueKey(trackIds: List<Long>): String {
         val digest = MessageDigest.getInstance("SHA-256")
         val bytes = digest.digest(trackIds.joinToString(",").toByteArray(Charsets.UTF_8))
         return bytes.joinToString("") { "%02x".format(it) }.take(32)
+    }
+
+    /** [queueKey], cached for a repeated identical track list (the playing list, checked on every player event). */
+    fun queueKeyCached(trackIds: List<Long>): String {
+        val cachedIds = lastKeyTrackIds
+        val cachedKey = lastKeyValue
+        if (cachedIds != null && cachedKey != null && cachedIds == trackIds) {
+            return cachedKey
+        }
+        val key = queueKey(trackIds)
+        lastKeyTrackIds = trackIds.toList()
+        lastKeyValue = key
+        return key
     }
 
     @JvmName("queueKeyForMediaItems")
@@ -98,7 +122,7 @@ object QueueResumeHelper {
         if (trackIds.isEmpty()) return
         val currentId = current.mediaId.toLongOrNull() ?: return
         val currentIndex = trackIds.indexOf(currentId).takeIf { it >= 0 } ?: return
-        val key = queueKey(trackIds)
+        val key = queueKeyCached(trackIds)
         val now = System.currentTimeMillis()
         if (!force && key == lastSavedKey && kotlin.math.abs(positionMs - lastSavedPositionMs) < SAVE_INTERVAL_MS &&
             now - lastSavedAtMs < SAVE_INTERVAL_MS
@@ -112,22 +136,40 @@ object QueueResumeHelper {
         executor.execute {
             try {
                 val dao = context.queueStatesDAO
-                val state = QueueState(
-                    queueKey = key,
-                    label = label,
-                    currentTrackId = currentId,
-                    currentIndex = currentIndex,
-                    lastPositionMs = positionMs,
-                    trackCount = trackIds.size,
-                    updatedAt = now,
-                    shuffleEnabled = shuffleEnabled,
-                    repeatSetting = repeatSettingOrdinal
-                )
-                val items = trackIds.mapIndexed { index, trackId ->
-                    QueueStateItem(queueKey = key, trackId = trackId, trackOrder = index)
+                if (key == lastSavedItemsKey) {
+                    // Same track list as the last full save: only the
+                    // stopping point moved. A single-row UPDATE keeps the
+                    // database free for list loads instead of rewriting
+                    // the whole track list on every save.
+                    dao.updatePosition(
+                        queueKey = key,
+                        trackId = currentId,
+                        index = currentIndex,
+                        positionMs = positionMs,
+                        trackCount = trackIds.size,
+                        updatedAt = now,
+                        shuffleEnabled = shuffleEnabled,
+                        repeatSetting = repeatSettingOrdinal
+                    )
+                } else {
+                    val state = QueueState(
+                        queueKey = key,
+                        label = label,
+                        currentTrackId = currentId,
+                        currentIndex = currentIndex,
+                        lastPositionMs = positionMs,
+                        trackCount = trackIds.size,
+                        updatedAt = now,
+                        shuffleEnabled = shuffleEnabled,
+                        repeatSetting = repeatSettingOrdinal
+                    )
+                    val items = trackIds.mapIndexed { index, trackId ->
+                        QueueStateItem(queueKey = key, trackId = trackId, trackOrder = index)
+                    }
+                    dao.saveState(state, items)
+                    dao.getKeysBeyondNewest(MAX_SAVED_QUEUES).forEach { dao.deleteQueue(it) }
+                    lastSavedItemsKey = key
                 }
-                dao.saveState(state, items)
-                dao.getKeysBeyondNewest(MAX_SAVED_QUEUES).forEach { dao.deleteQueue(it) }
             } catch (ignored: Exception) {
             }
         }
@@ -187,6 +229,9 @@ object QueueResumeHelper {
 
     /** Forget every saved queue position (used when the feature is toggled off). */
     fun clearAll(context: Context) {
+        lastSavedKey = null
+        lastSavedItemsKey = null
+        lastSavedPositionMs = -1L
         executor.execute {
             try {
                 context.queueStatesDAO.deleteAllItems()
@@ -224,6 +269,8 @@ object QueueResumeHelper {
      * background thread. The music itself is not affected.
      */
     fun forgetSavedQueue(context: Context, queueKey: String) {
+        if (queueKey == lastSavedItemsKey) lastSavedItemsKey = null
+        if (queueKey == lastSavedKey) lastSavedKey = null
         try {
             context.queueStatesDAO.deleteQueue(queueKey)
         } catch (ignored: Exception) {
@@ -235,6 +282,9 @@ object QueueResumeHelper {
      * a background thread. The music itself is not affected.
      */
     fun forgetAllSavedQueues(context: Context) {
+        lastSavedKey = null
+        lastSavedItemsKey = null
+        lastSavedPositionMs = -1L
         try {
             context.queueStatesDAO.deleteAllItems()
             context.queueStatesDAO.deleteAllStates()
