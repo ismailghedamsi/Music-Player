@@ -7,7 +7,6 @@ import org.fossify.musicplayer.R
 import org.fossify.musicplayer.extensions.audioHelper
 import org.fossify.musicplayer.extensions.config
 import org.fossify.musicplayer.extensions.playlistStatesDAO
-import org.fossify.musicplayer.extensions.toTrack
 import org.fossify.musicplayer.models.PlaylistState
 import org.fossify.musicplayer.models.Track
 import java.util.concurrent.Executors
@@ -22,9 +21,9 @@ import java.util.concurrent.Executors
  * the playlist's current track list by its track id. Restore semantics
  * match the per-list resume: tapping the first song of the playlist, or
  * the song playback stopped on, resumes at the saved song and position;
- * tapping any other song starts that song from 0; a position under 5
- * seconds is a fresh start, and a position within 3 seconds of the song's
- * end counts as finished.
+ * tapping any other song starts that song from 0; a position within 3
+ * seconds of the song's end counts as finished. A song played only
+ * briefly is still remembered: it resumes from its start.
  */
 object PlaylistResumeHelper {
 
@@ -38,6 +37,21 @@ object PlaylistResumeHelper {
 
     @Volatile
     private var lastSyncedAtMs: Long = 0L
+
+    /**
+     * The playlist the player was last started from, or -1. Set by
+     * `prepareAndPlay` when playback starts from a playlist's track list.
+     * This is needed because the player prepares tracks through the fast
+     * media-item path, which carries no metadata extras: the playing
+     * items alone cannot say which playlist they came from.
+     */
+    @Volatile
+    var activePlaylistId: Int = -1
+        private set
+
+    fun setActivePlaylist(playlistId: Int) {
+        activePlaylistId = playlistId
+    }
 
     /** Saved state for one playlist, or null when it was never played. Runs on the calling thread. */
     fun getState(context: Context, playlistId: Int): PlaylistState? {
@@ -72,7 +86,9 @@ object PlaylistResumeHelper {
         if (tappedIndex != 0 && tappedIndex != savedIndex) return null
         val savedTrack = tracks[savedIndex]
         val durationMs = savedTrack.duration * 1000L
-        if (state.lastPositionMs < QueueResumeHelper.MIN_RESUME_POSITION_MS) return null
+        // A brief play still counts: the song is remembered even when it
+        // played for under 5 seconds, and resumes from its start.
+        if (state.lastPositionMs < QueueResumeHelper.MIN_RESUME_POSITION_MS) return Pair(savedIndex, 0L)
         if (durationMs > 0 && state.lastPositionMs >= durationMs - QueueResumeHelper.END_MARGIN_MS) {
             // Finished the last song of the playlist: restart fresh.
             if (savedIndex == tracks.lastIndex) return null
@@ -93,7 +109,8 @@ object PlaylistResumeHelper {
         val index = tracks.indexOfFirst { it.mediaStoreId == state.currentTrackId }
         if (index < 0) return null
         val durationMs = tracks[index].duration * 1000L
-        if (state.lastPositionMs < QueueResumeHelper.MIN_RESUME_POSITION_MS) return null
+        // A brief play still counts: the song is highlighted even when it
+        // played for under 5 seconds.
         if (durationMs > 0 && state.lastPositionMs >= durationMs - QueueResumeHelper.END_MARGIN_MS) return null
         return ResumeMarker(index, state.currentTrackId, state.lastPositionMs)
     }
@@ -106,7 +123,6 @@ object PlaylistResumeHelper {
      */
     fun lastPlayedText(context: Context, playlistId: Int): String? {
         val state = getState(context, playlistId) ?: return null
-        if (state.lastPositionMs < QueueResumeHelper.MIN_RESUME_POSITION_MS) return null
         val track = try {
             context.audioHelper.getTrack(state.currentTrackId)
         } catch (ignored: Exception) {
@@ -114,15 +130,18 @@ object PlaylistResumeHelper {
         } ?: return null
         val durationMs = track.duration * 1000L
         if (durationMs > 0 && state.lastPositionMs >= durationMs - QueueResumeHelper.END_MARGIN_MS) return null
-        val positionText = (state.lastPositionMs / 1000).toInt().getFormattedDuration()
         val title = if (track.artist.isNotBlank()) "${track.artist} — ${track.title}" else track.title
+        // A brief play still counts: the song is shown even when it played
+        // for under 5 seconds, without a "resumes at" time.
+        if (state.lastPositionMs < QueueResumeHelper.MIN_RESUME_POSITION_MS) return title
+        val positionText = (state.lastPositionMs / 1000).toInt().getFormattedDuration()
         return "$title • ${context.getString(R.string.saved_queue_resume_at, positionText)}"
     }
 
     /**
      * Keep a playlist's stored stopping point in step with playback: the
-     * playlist is the one the song now playing belongs to (read from the
-     * media item's extras). The "All tracks" pseudo-playlist (id 1) and
+     * playlist is the one playback was started from (see
+     * [activePlaylistId]). The "All tracks" pseudo-playlist (id 1) and
      * album/folder lists never write a playlist state. Cheap no-op when
      * nothing meaningful changed and [force] is false; pass [force]=true
      * on pause/track-change so the exact stopping point is always recorded.
@@ -141,7 +160,7 @@ object PlaylistResumeHelper {
         if (trackIds.isEmpty()) return
         val currentId = current.mediaId.toLongOrNull() ?: return
         val currentIndex = trackIds.indexOf(currentId).takeIf { it >= 0 } ?: return
-        val playlistId = current.toTrack()?.playListId ?: return
+        val playlistId = activePlaylistId
         if (playlistId <= 0 || playlistId == ALL_TRACKS_PLAYLIST_ID) return
         val now = System.currentTimeMillis()
         if (!force && playlistId == lastSyncedPlaylistId && kotlin.math.abs(positionMs - lastSyncedPositionMs) < QueueResumeHelper.SAVE_INTERVAL_MS &&
